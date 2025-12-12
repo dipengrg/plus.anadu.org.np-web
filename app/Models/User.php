@@ -10,44 +10,34 @@ use Laravel\Sanctum\HasApiTokens;
 
 class User extends Authenticatable
 {
-    /** @use HasFactory<\Database\Factories\UserFactory> */
     use HasFactory, Notifiable;
     use HasApiTokens;
 
-    /**
-     * The attributes that are mass assignable.
-     *
-     * @var list<string>
-     */
+    // The attributes that are mass assignable.
     protected $fillable = [
-        'name',
-        'photo',
-        'dob',
+        'role',
         'phone',
         'otp',
         'otp_created_at',
         'status'
     ];
 
-    /**
-     * The attributes that should be hidden for serialization.
-     *
-     * @var list<string>
-     */
+    // The attributes that should be hidden for arrays.
     protected $hidden = [
         'otp',
         'otp_created_at'
     ];
 
-    /**
-     * Get the attributes that should be cast.
-     *
-     * @return array<string, string>
-     */
+    // Has many membership
+    public function members()
+    {
+        return $this->hasMany(Member::class);
+    }
+
+    // The attributes that should be cast to native types.
     protected function casts(): array
     {
         return [
-            'dob' => 'datetime',
             'otp_created_at' => 'datetime',
             'status' => 'boolean',
         ];

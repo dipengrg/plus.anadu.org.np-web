@@ -16,16 +16,14 @@ return new class extends Migration
 
         // Remove unnecessary columns from the users table
         Schema::table('users', function (Blueprint $table) {
-            $table->dropColumn(['email', 'email_verified_at', 'password', 'remember_token']);
+            $table->dropColumn(['name', 'email', 'email_verified_at', 'password', 'remember_token']);
         });
 
         // Add new columns to the users table
         Schema::table('users', function (Blueprint $table) {
             // Add new columns
             $table->string('role')->default('general')->index()->after('id');
-            $table->string('photo')->nullable()->after('name');
-            $table->date('dob')->nullable()->after('photo');
-            $table->string('phone')->unique()->after('dob');
+            $table->string('phone')->unique()->after('role');
             $table->string('otp')->nullable()->after('phone');
             $table->timestamp('otp_created_at')->nullable()->after('otp');
             $table->boolean('status')->default(1)->after('otp_created_at');
@@ -46,11 +44,12 @@ return new class extends Migration
 
         // Remove the newly added columns from the users table
         Schema::table('users', function (Blueprint $table) {
-            $table->dropColumn(['role', 'photo', 'dob', 'phone', 'otp', 'otp_created_at', 'status']);
+            $table->dropColumn(['role', 'phone', 'otp', 'otp_created_at', 'status']);
         });
 
         Schema::table('users', function (Blueprint $table) {
             // Re-add the removed columns
+            $table->string('name')->after('id');
             $table->string('email')->unique()->after('name');
             $table->timestamp('email_verified_at')->nullable()->after('email');
             $table->string('password')->after('email_verified_at');

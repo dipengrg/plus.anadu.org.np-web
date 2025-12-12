@@ -43,135 +43,47 @@ Phone-centric design (email removed):
 - Use `$request->validate(['field' => 'rules'])` in controllers
 - Current OTP validation: phone (required|string), otp (required|numeric)
 - Keep validation in controllers, not in models
+# Copilot Instructions — Plus Anadu (concise)
 
-### OTP Expiry Check
+Purpose: quick, actionable guidance for AI coding agents working on this Laravel API focused on phone+OTP authentication.
+
+Big picture
+- API-only Laravel 12 backend (Sanctum) with minimal Vite/Tailwind assets. Auth is phone-centric OTPs stored on `users`.
+- Key files: [app/Http/Controllers/API/OtpController.php](app/Http/Controllers/API/OtpController.php), [routes/api.php](routes/api.php), [app/Models/User.php](app/Models/User.php), migration [database/migrations/2025_12_10_102311_update_users_table.php](database/migrations/2025_12_10_102311_update_users_table.php).
+
+Critical flows & conventions
+- OTP flow: `POST /api/otp/request` → save `otp` + `otp_created_at` on user; `POST /api/otp/verify` → exact-match check + 3-minute expiry → clear OTP and issue token via `$user->createToken('mobile')->plainTextToken`.
+- Always return JSON with a `message` key. Use explicit HTTP codes: 200, 422 (validation), 404, 410 (OTP expired).
+- Validation lives in controllers via `$request->validate(...)`. Do not move to models.
+
+Useful snippets
+- OTP expiry check (use Carbon):
 ```php
-// Explicit 3-minute window check
 if ($user->otp_created_at && Carbon::parse($user->otp_created_at)->addMinutes(3)->isPast()) {
     return response()->json(['message' => 'OTP expired'], 410);
 }
 ```
-Always use this pattern when validating OTP timestamps. Don't use mutators; keep logic explicit in controllers.
-
-### Token Creation
+- Token creation:
 ```php
 $token = $user->createToken('mobile')->plainTextToken;
 ```
-Always use `'mobile'` as the token name for API tokens (consistency with Sanctum setup).
 
-## Development Workflows
+Developer workflows
+- Setup: `composer install && npm install && php artisan key:generate && php artisan migrate && npm run build`.
+- Dev (one-liner): `composer run dev` (runs `serve`, queue listener, pail logs, and `npm run dev`).
+- Tests: `./vendor/bin/pest` (or filter by file/label). Tests use in-memory SQLite as configured in `phpunit.xml`.
+- Formatting: `./vendor/bin/pint`.
 
-### Environment Setup
-```bash
-composer install
-npm install
-php artisan key:generate
-php artisan migrate
-npm run build  # Tailwind/Vite compilation
-```
+Integration points & TODOs
+- SMS: `OtpController::requestOtp()` stores OTP but does not send SMS. Look for the `TODO` and add an SMS service (e.g., `app/Services/SmsService.php`) or dispatch a queued job. Example dispatch: `SendOtpSms::dispatch($user->phone, $otp)`.
+- Queue: `config/queue.php` is present but sending is synchronous today — move SMS sending to a queued job for production.
 
-### Development Server (All-in-One)
-```bash
-composer run dev
-```
-This runs concurrently:
-- `php artisan serve` (port 8000)
-- `php artisan queue:listen --tries=1` (queue worker)
-- `php artisan pail --timeout=0` (real-time logs)
-- `npm run dev` (Vite watch)
+Where to extend
+- Add API controllers under `app/Http/Controllers/API/`, add routes in `routes/api.php`, validate with `$request->validate()`, return `['message'=>..., ...]` and add tests in `tests/Feature/`.
 
-Use this for local development; manually kill if stuck.
+Notes for agents
+- Preserve existing API response shapes and status codes. Follow the OTP expiry pattern above. Use `'mobile'` as the Sanctum token name.
+- Sensitive fields: `otp` and `otp_created_at` are hidden on the `User` model — don't expose them in responses.
 
-### Testing
-```bash
-./vendor/bin/pest                 # All tests
-./vendor/bin/pest tests/Feature   # Feature tests only
+If anything here is unclear or you'd like more detail (sms provider examples, job scaffolding, or tests added), tell me which area to expand.
 ./vendor/bin/pest --filter=testName  # Specific test
-```
-Tests run against in-memory SQLite (configured in `phpunit.xml`). Tests inherit from `Tests\TestCase` which extends Laravel's base TestCase with access to HTTP testing traits.
-
-### Database
-```bash
-php artisan migrate              # Run migrations
-php artisan migrate:rollback     # Undo last batch
-php artisan migrate:fresh        # Reset + re-seed
-```
-Default connection is SQLite (`database_path('database.sqlite')`); MySQL config available in `config/database.php`.
-
-### Code Style
-```bash
-./vendor/bin/pint              # Format code (Laravel Pint)
-./vendor/bin/pint --test       # Check without fixing
-```
-
-## Critical TODOs & Integration Points
-
-### SMS Gateway Integration
-The `OtpController::requestOtp()` method has a TODO comment (line ~32):
-```php
-// TODO: Integrate your SMS gateway here
-// sendSms($user->phone, "Your OTP is: $otp");
-```
-**Action**: Implement SMS delivery before production. Currently OTP is stored but not sent. Common solutions:
-- Twilio, AWS SNS, local SMS provider APIs
-- Create a `Services\SmsService` class
-- Inject via constructor or `app()` helper
-
-### Queue Integration
-Queue connection is configured (`config/queue.php`) but unused. OTP requests run synchronously. For production scalability, queue SMS sending:
-```php
-SendOtpSms::dispatch($user->phone, $otp);
-```
-
-### Sanctum Token Security
-- Tokens are plain-text on first issue (`plainTextToken`)
-- Client must store securely; subsequent requests send via `Authorization: Bearer {token}`
-- No explicit token expiration set (uses Laravel's default)
-
-## Common Tasks
-
-### Adding a New API Endpoint
-1. Create/extend controller in `app/Http/Controllers/API/{Feature}Controller.php`
-2. Add route in `routes/api.php`
-3. Validate input with `$request->validate([])`
-4. Return JSON response with `message` + data
-5. Add test in `tests/Feature/{Feature}Test.php`
-
-### Modifying User Schema
-1. Create migration: `php artisan make:migration add_field_to_users_table`
-2. Define schema changes in `up()`/`down()`
-3. Run: `php artisan migrate`
-4. Update `User::$fillable` or `$hidden` if needed
-
-### Testing API Endpoints
-Use Pest feature tests with Sanctum tokens:
-```php
-use Tests\TestCase;
-
-test('otp verification returns token', function () {
-    $user = User::factory()->create(['otp' => '1234', 'otp_created_at' => now()]);
-    $response = $this->postJson('/api/otp/verify', [
-        'phone' => $user->phone,
-        'otp' => '1234',
-    ]);
-    $response->assertOk()->assertHasPath('token');
-});
-```
-
-## External Dependencies & Versions
-- **Laravel**: 12.0 (latest stable)
-- **PHP**: 8.2+
-- **Sanctum**: 4.0 (API token auth)
-- **Pest**: 4.1 + pest-plugin-laravel 4.0
-- **Vite**: 7.0 + laravel-vite-plugin 2.0
-- **Tailwind**: 4.0 (via @tailwindcss/vite)
-
-Avoid outdated version assumptions; always check `composer.json` for actual versions.
-
-## Conventions & Anti-Patterns
-- **DO**: Return explicit HTTP status codes (410 for expired, 422 for validation)
-- **DO**: Use `Carbon` for date comparisons (already imported in `OtpController`)
-- **DO**: Hide sensitive fields via `Model::$hidden`
-- **DON'T**: Use email/password fields (removed by design)
-- **DON'T**: Manually hash OTP (store as plain integer for SMS delivery)
-- **DON'T**: Set token expiration in Sanctum without explicit configuration

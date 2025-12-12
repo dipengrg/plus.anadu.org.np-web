@@ -24,11 +24,7 @@ class UserFactory extends Factory
     public function definition(): array
     {
         return [
-            'role' => 'general',
-            'name' => $this->faker->name(),
-            'phone' => $this->faker->numerify('98########'),
-            'otp' => null,
-            'otp_created_at' => null,
+            // 'name' => $this->faker->name(),
         ];
     }
 }
