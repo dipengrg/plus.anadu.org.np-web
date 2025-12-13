@@ -8,6 +8,7 @@ use App\Http\Controllers\API\ProfileController;
 use App\Http\Controllers\API\MemberController;
 use App\Http\Controllers\API\MessageController;
 use App\Http\Controllers\API\TenureController;
+use App\Http\Controllers\API\EventController;
 
 // Public Routes for OTP based authentication
 Route::post('otp/request', [OtpController::class, 'requestOtp']);
@@ -36,5 +37,12 @@ Route::group(['middleware' => 'auth:sanctum'], function () {
     Route::delete('tenures/{tenure}', [TenureController::class, 'deleteTenure']);
     Route::post('tenures/{tenure}/committees', [TenureController::class, 'postTenureMember']);
     Route::delete('tenures/{tenure}/committees/{member}', [TenureController::class, 'deleteTenureMember']);
+
+    // Event Routes
+    Route::get('events', [EventController::class, 'getEvents']);
+    Route::post('events', [EventController::class, 'postEvent']);
+    Route::get('events/{event}', [EventController::class, 'getEvent']);
+    Route::put('events/{event}', [EventController::class, 'updateEvent']);
+    Route::delete('events/{event}', [EventController::class, 'deleteEvent']);
 });
 
