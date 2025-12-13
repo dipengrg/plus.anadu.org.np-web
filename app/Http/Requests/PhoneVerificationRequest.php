@@ -6,17 +6,13 @@ use Illuminate\Foundation\Http\FormRequest;
 
 class PhoneVerificationRequest extends FormRequest
 {
-    /**
-     * Determine if the user is authorized to make this request.
-     */
+    // Determine if the user is authorized to make this request.
     public function authorize(): bool
     {
         return true;
     }
 
-    /**
-     * Get the validation rules that apply to the request.
-     */
+    // Get the validation rules that apply to the request.
     public function rules(): array
     {
         return [
@@ -28,9 +24,7 @@ class PhoneVerificationRequest extends FormRequest
         ];
     }
 
-    /**
-     * Custom attribute names for localization
-     */
+    // Custom attribute names for localization
     public function attributes(): array
     {
         return [

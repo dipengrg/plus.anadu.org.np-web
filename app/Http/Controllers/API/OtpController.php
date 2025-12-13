@@ -7,6 +7,7 @@ use App\Http\Controllers\Controller;
 use App\Http\Responses\ApiResponse;
 use App\Http\Requests\PhoneVerificationRequest;
 use App\Http\Requests\OtpVerificationRequest;
+use App\Services\Samaya;
 use Illuminate\Support\Carbon;
 
 class OtpController extends Controller
@@ -28,10 +29,11 @@ class OtpController extends Controller
             'otp_created_at' => now(),
         ]);
         
-        // TODO: Integrate your SMS gateway here
-        // sendSms($user->phone, "Your OTP is: $otp");
+        // Send SMS with OTP
+        $smsService = new Samaya();
+        $smsService->send($user->phone, "Your OTP is: $otp");
 
-        return ApiResponse::success(__('messages.otp_sent'));
+        return ApiResponse::success(__('otp.sent'));
     }
 
     /**
@@ -44,12 +46,12 @@ class OtpController extends Controller
 
         // Check if OTP matches
         if ($user->otp != $request->otp) {
-            return ApiResponse::error(__('messages.invalid_otp'), 422);
+            return ApiResponse::error(__('otp.invalid'), 422);
         }
 
         // Optional: OTP expiry check (example 3 minutes)
         if ($user->otp_created_at && Carbon::parse($user->otp_created_at)->addMinutes(3)->isPast()) {
-            return ApiResponse::error(__('messages.otp_expired'), 410);
+            return ApiResponse::error(__('otp.expired'), 410);
         }
 
         // OTP success → clear OTP
@@ -62,7 +64,7 @@ class OtpController extends Controller
         $token = $user->createToken('mobile')->plainTextToken;
 
         // Return success response with token and user info
-        return ApiResponse::success(__('messages.otp_verified'), [
+        return ApiResponse::success(__('otp.verified'), [
             'token' => $token,
             'user' => $user,
         ]);
