@@ -25,6 +25,14 @@ class Member extends Model
         return $this->BelongsTo(User::class);
     }
 
+    // Define relationship with Tenure model through tenure_members pivot table
+    public function tenures()
+    {
+        return $this->belongsToMany(Tenure::class, 'tenure_members')
+                    ->withPivot('designation')
+                    ->withTimestamps();
+    }
+
     // The attributes that should be cast to native types.
     protected function casts(): array
     {

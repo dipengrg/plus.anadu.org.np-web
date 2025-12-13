@@ -7,6 +7,7 @@ use App\Http\Controllers\API\OtpController;
 use App\Http\Controllers\API\ProfileController;
 use App\Http\Controllers\API\MemberController;
 use App\Http\Controllers\API\MessageController;
+use App\Http\Controllers\API\TenureController;
 
 // Public Routes for OTP based authentication
 Route::post('otp/request', [OtpController::class, 'requestOtp']);
@@ -27,5 +28,13 @@ Route::group(['middleware' => 'auth:sanctum'], function () {
 
     // Message Routes
     Route::post('messages', [MessageController::class, 'postMessage']);
+
+    // Tenure Routes
+    Route::get('tenures', [TenureController::class, 'getTenures']);
+    Route::post('tenures', [TenureController::class, 'postTenure']);
+    Route::get('tenures/{tenure}', [TenureController::class, 'getTenure']);
+    Route::delete('tenures/{tenure}', [TenureController::class, 'deleteTenure']);
+    Route::post('tenures/{tenure}/committees', [TenureController::class, 'postTenureMember']);
+    Route::delete('tenures/{tenure}/committees/{member}', [TenureController::class, 'deleteTenureMember']);
 });
 

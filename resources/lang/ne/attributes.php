@@ -9,4 +9,8 @@ return [
     'address' => 'ठेगाना',
     'current_residence' => 'हालको बसोबास',
     'photo' => 'फोटो',
+    'tenure_id' => 'कार्यकाल',
+    'member_id' => 'सदस्य',
+    'designation' => 'पद',
+    'rank' => 'स्तर',
 ];
