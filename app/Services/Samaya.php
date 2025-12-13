@@ -10,6 +10,7 @@ class Samaya {
     protected $url;
     protected $client;
     
+    
     public function __construct()
     {
         $this->url = 'https://samayasms.com.np/smsapi/index.php';

@@ -6,6 +6,7 @@ use Illuminate\Support\Facades\Route;
 use App\Http\Controllers\API\OtpController;
 use App\Http\Controllers\API\ProfileController;
 use App\Http\Controllers\API\MemberController;
+use App\Http\Controllers\API\MessageController;
 
 // Public Routes for OTP based authentication
 Route::post('otp/request', [OtpController::class, 'requestOtp']);
@@ -23,5 +24,8 @@ Route::group(['middleware' => 'auth:sanctum'], function () {
     Route::post('members/{member}/avatar', [MemberController::class, 'postMemberAvatar']);
     Route::put('members/{member}', [MemberController::class, 'updateMember']);
     Route::delete('members/{member}', [MemberController::class, 'deleteMember']);
+
+    // Message Routes
+    Route::post('messages', [MessageController::class, 'postMessage']);
 });
 
