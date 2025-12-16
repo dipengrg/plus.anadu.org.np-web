@@ -11,30 +11,32 @@ use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Facades\File;
 use Intervention\Image\ImageManager;
 use Intervention\Image\Drivers\Gd\Driver;
+use App\Services\MemberService;
 
 class MemberController extends Controller
 {
+    // Dependency Injection
+    public $memberService;
+
+    // Constructor
+    public function __construct(MemberService $memberService)
+    {
+        $this->memberService = $memberService;
+    }
+
     // Get all members
-    public function getMembers(Member $members)
+    public function getMembers()
     {
         return ApiResponse::success([
             'message' => __('member.listed'), 
-            'data' => $members->orderBy('name', 'ASC')->with(['user'])->get()
+            'data' => $this->memberService->getAllOrderedWithUser()
         ]);
     }
 
     // Post a member
     public function postMember(MemberAddRequest $request) {
-        $member = new Member;
-        $member->user_id = $request->has('user_id') ? $request->get('user_id') : null;
-        $member->title = $request->get('title');
-        $member->name = $request->get('name');
-        $member->gender = $request->get('gender');
-        $member->dob = $request->get('dob');
-        $member->address = $request->get('address');
-        $member->current_residence = $request->get('current_residence');
-        $member->status = $request->has('status') ? $request->get('status') : null;
-        $member->save();
+        // Create member
+        $this->memberService->create($request->validated());
 
         // Return a success response
         return ApiResponse::success(['message' => __('member.posted'), 'member' => $member]);
@@ -45,35 +47,16 @@ class MemberController extends Controller
     {
         return ApiResponse::success([
             'message' => __('member.retrieved'), 
-            'data' => $member->load(['user'])
+            'data' => $this->memberService->getById($member)
         ]);
     }
 
     // Post member avatar
     public function postMemberAvatar(FileUploadRequest $request, Member $member) {
-        // Get old photo
-        $old_photo_name = $member->photo;
+        // Update avatar
+        $photo_name = $this->memberService->updateAvatar($member, $request->file('file'));
 
-        $file = $request->file('photo');
-        $photo_name = sha1($member->id.time()) . '.' . $file->getClientOriginalExtension();
-
-        // Store file
-        Storage::disk('public')->put($photo_name, File::get($file));
-
-        // create image manager and resize image
-        $manager = new ImageManager(new Driver());
-        $image = $manager->read(storage_path($photo_name));
-        $image->cover(600, 600);
-        $image->save();
-
-        // Delete file if exists
-        if (Storage::disk('public')->exists($old_photo_name)) {
-            Storage::disk('public')->delete($old_photo_name);
-        }
-
-        $member->photo = $photo_name;
-        $member->save();
-
+        // Return a success response
         return ApiResponse::success([
             'message' => __('member.avatar_uploaded'), 
             'data' => $photo_name
@@ -83,27 +66,21 @@ class MemberController extends Controller
     // Update member
     public function updateMember(MemberAddRequest $request, Member $member)
     {
-        $member->user_id = $request->has('user_id') ? $request->get('user_id') : null;
-        $member->title = $request->get('title');
-        $member->name = $request->get('name');
-        $member->gender = $request->get('gender');
-        $member->dob = $request->get('dob');
-        $member->address = $request->get('address');
-        $member->current_residence = $request->get('current_residence');
-        $member->status = $request->has('status') ? $request->get('status') : null;
-        $member->save();
+        // Update member
+        $updatedMember = $this->memberService->update($member, $request->validated());
 
         // Return a success response
         return ApiResponse::success([
             'message' => __('member.updated'), 
-            'member' => $member
+            'member' => $updatedMember
         ]);
     }
 
     // Delete member
     public function deleteMember(Member $member)
     {
-        $member->delete();
+        // Delete member
+        $this->memberService->delete($member);
 
         // Return a success response
         return ApiResponse::success(['message' => __('member.deleted')]);
